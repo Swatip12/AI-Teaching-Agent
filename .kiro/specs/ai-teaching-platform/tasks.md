@@ -63,18 +63,27 @@
   - **Property 14: Settings persistence**
   - **Validates: Requirements 7.3**
 
-- [ ] 4. Create lesson content management system
+- [x] 4. Create lesson content management system
+
+
+
+
   - Implement lesson CRUD operations and content storage
   - Create lesson sequencing and prerequisite logic
   - Design lesson content structure with checkpoints and practice questions
   - Implement subject and curriculum management
   - _Requirements: 2.1, 2.2, 2.3, 2.4, 2.5, 5.2, 5.4_
 
-- [ ] 4.1 Write property test for lesson structure
+- [x] 4.1 Write property test for lesson structure
+
+
   - **Property 4: Consistent lesson structure**
   - **Validates: Requirements 2.1, 2.2, 2.3, 2.4, 2.5**
 
-- [ ] 4.2 Write property test for prerequisite enforcement
+- [x] 4.2 Write property test for prerequisite enforcement
+
+
+
   - **Property 11: Prerequisite enforcement**
   - **Validates: Requirements 5.4**
 

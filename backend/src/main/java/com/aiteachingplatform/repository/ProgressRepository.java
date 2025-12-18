@@ -97,4 +97,9 @@ public interface ProgressRepository extends JpaRepository<Progress, Long> {
      */
     @Query(value = "SELECT COUNT(*) FROM (SELECT DISTINCT DATE(updated_at) FROM progress WHERE user_id = :userId AND updated_at >= :startDate ORDER BY DATE(updated_at) DESC) AS daily_progress", nativeQuery = true)
     long calculateLearningStreak(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate);
+    
+    /**
+     * Find progress by user and lessons
+     */
+    List<Progress> findByUserAndLessonIn(User user, List<Lesson> lessons);
 }
