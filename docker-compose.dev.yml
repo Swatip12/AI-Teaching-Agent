@@ -1,0 +1,24 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: ai-teaching-platform-db-dev
+    environment:
+      POSTGRES_DB: ai_teaching_platform
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_dev_data:/var/lib/postgresql/data
+      - ./database/init:/docker-entrypoint-initdb.d
+    networks:
+      - ai-teaching-platform-dev-network
+
+volumes:
+  postgres_dev_data:
+
+networks:
+  ai-teaching-platform-dev-network:
+    driver: bridge
