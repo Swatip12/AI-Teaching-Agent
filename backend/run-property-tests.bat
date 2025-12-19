@@ -25,6 +25,10 @@ REM Test 5: Subject Isolation Property
 echo Running Subject Isolation Property Test...
 mvn test -Dtest=SubjectIsolationProperty -q
 
+REM Test 6: Interactive Code Execution Property
+echo Running Interactive Code Execution Property Test...
+mvn test -Dtest=InteractiveCodeExecutionProperty -q
+
 echo ==================================================
 echo Property-based tests completed!
 echo.
@@ -34,3 +38,4 @@ echo - Property 6: Error-specific guidance (Requirements 3.2, 3.4)
 echo - Property 7: Success reinforcement (Requirements 3.5)
 echo - Property 9: Progress-based unlocking (Requirements 4.4, 4.5)
 echo - Property 10: Subject isolation and paths (Requirements 5.2, 5.3)
+echo - Property 12: Interactive code execution (Requirements 6.1, 6.2, 6.3, 6.4, 6.5)

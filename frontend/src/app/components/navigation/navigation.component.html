@@ -1,0 +1,45 @@
+<mat-toolbar color="primary" class="navigation-toolbar">
+  <div class="nav-container">
+    <!-- Logo and Brand -->
+    <div class="brand-section">
+      <mat-icon class="brand-icon">school</mat-icon>
+      <span class="brand-text" routerLink="/">AI Teaching Platform</span>
+    </div>
+
+    <!-- Navigation Links (when authenticated) -->
+    <div class="nav-links" *ngIf="isAuthenticated">
+      <button mat-button routerLink="/dashboard" routerLinkActive="active">
+        <mat-icon>dashboard</mat-icon>
+        Dashboard
+      </button>
+    </div>
+
+    <!-- User Menu (when authenticated) -->
+    <div class="user-section" *ngIf="isAuthenticated">
+      <button mat-icon-button [matMenuTriggerFor]="userMenu">
+        <mat-icon>account_circle</mat-icon>
+      </button>
+      <mat-menu #userMenu="matMenu">
+        <div class="user-info">
+          <p class="username">{{ currentUser?.username }}</p>
+          <p class="email">{{ currentUser?.email }}</p>
+        </div>
+        <mat-divider></mat-divider>
+        <button mat-menu-item routerLink="/profile">
+          <mat-icon>person</mat-icon>
+          <span>Profile & Settings</span>
+        </button>
+        <button mat-menu-item (click)="onLogout()">
+          <mat-icon>logout</mat-icon>
+          <span>Sign Out</span>
+        </button>
+      </mat-menu>
+    </div>
+
+    <!-- Auth Links (when not authenticated) -->
+    <div class="auth-links" *ngIf="!isAuthenticated">
+      <button mat-button routerLink="/login">Sign In</button>
+      <button mat-raised-button color="accent" routerLink="/register">Sign Up</button>
+    </div>
+  </div>
+</mat-toolbar>

@@ -1,0 +1,126 @@
+.navigation-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.nav-container {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 16px;
+}
+
+.brand-section {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .brand-icon {
+    font-size: 28px;
+    width: 28px;
+    height: 28px;
+  }
+  
+  .brand-text {
+    font-size: 20px;
+    font-weight: 500;
+    cursor: pointer;
+    text-decoration: none;
+    color: inherit;
+    
+    &:hover {
+      opacity: 0.8;
+    }
+  }
+}
+
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  button {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    
+    &.active {
+      background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    mat-icon {
+      font-size: 18px;
+      width: 18px;
+      height: 18px;
+    }
+  }
+}
+
+.user-section {
+  display: flex;
+  align-items: center;
+  
+  button {
+    mat-icon {
+      font-size: 28px;
+      width: 28px;
+      height: 28px;
+    }
+  }
+}
+
+.auth-links {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+// User menu styles
+.user-info {
+  padding: 8px 16px;
+  border-bottom: 1px solid #e0e0e0;
+  
+  .username {
+    margin: 0 0 4px 0;
+    font-weight: 500;
+    color: #333;
+  }
+  
+  .email {
+    margin: 0;
+    font-size: 12px;
+    color: #666;
+  }
+}
+
+mat-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  
+  mat-icon {
+    font-size: 18px;
+    width: 18px;
+    height: 18px;
+    color: #666;
+  }
+}
+
+@media (max-width: 768px) {
+  .nav-container {
+    padding: 0 8px;
+  }
+  
+  .brand-text {
+    font-size: 16px;
+  }
+  
+  .nav-links {
+    display: none; // Hide nav links on mobile, keep user menu
+  }
+}

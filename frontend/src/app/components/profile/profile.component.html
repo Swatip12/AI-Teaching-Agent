@@ -1,0 +1,117 @@
+<div class="profile-container">
+  <div class="profile-header">
+    <mat-icon class="profile-icon">account_circle</mat-icon>
+    <h1>My Profile</h1>
+    <p>Manage your account settings and learning preferences</p>
+  </div>
+
+  <div class="profile-content" *ngIf="!isLoading && userProfile">
+    <!-- Account Information -->
+    <mat-card class="info-card">
+      <mat-card-header>
+        <mat-card-title>Account Information</mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="info-grid">
+          <div class="info-item">
+            <mat-icon>person</mat-icon>
+            <div>
+              <label>Username</label>
+              <p>{{ userProfile.username }}</p>
+            </div>
+          </div>
+          
+          <div class="info-item">
+            <mat-icon>email</mat-icon>
+            <div>
+              <label>Email</label>
+              <p>{{ userProfile.email }}</p>
+            </div>
+          </div>
+          
+          <div class="info-item">
+            <mat-icon>calendar_today</mat-icon>
+            <div>
+              <label>Member Since</label>
+              <p>{{ formatDate(userProfile.createdAt) }}</p>
+            </div>
+          </div>
+          
+          <div class="info-item">
+            <mat-icon>access_time</mat-icon>
+            <div>
+              <label>Last Login</label>
+              <p>{{ formatDate(userProfile.lastLoginAt) }}</p>
+            </div>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Learning Preferences -->
+    <mat-card class="preferences-card">
+      <mat-card-header>
+        <mat-card-title>Learning Preferences</mat-card-title>
+        <mat-card-subtitle>Customize your learning experience</mat-card-subtitle>
+      </mat-card-header>
+      <mat-card-content>
+        <form [formGroup]="preferencesForm" (ngSubmit)="onSavePreferences()">
+          <div class="preferences-grid">
+            <mat-form-field appearance="outline">
+              <mat-label>Learning Pace</mat-label>
+              <mat-select formControlName="learningPace">
+                <mat-option value="SLOW">Slow - Take your time</mat-option>
+                <mat-option value="NORMAL">Normal - Balanced pace</mat-option>
+                <mat-option value="FAST">Fast - Quick progression</mat-option>
+              </mat-select>
+              <mat-hint>How quickly do you want to progress through lessons?</mat-hint>
+            </mat-form-field>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Explanation Style</mat-label>
+              <mat-select formControlName="preferredExplanationStyle">
+                <mat-option value="SIMPLE">Simple - Easy to understand</mat-option>
+                <mat-option value="DETAILED">Detailed - Comprehensive explanations</mat-option>
+                <mat-option value="TECHNICAL">Technical - Advanced terminology</mat-option>
+              </mat-select>
+              <mat-hint>What type of explanations do you prefer?</mat-hint>
+            </mat-form-field>
+
+            <div class="toggle-section">
+              <mat-slide-toggle formControlName="enableEncouragement">
+                Enable Encouragement
+              </mat-slide-toggle>
+              <p class="toggle-description">Receive motivational messages and positive feedback</p>
+            </div>
+
+            <mat-form-field appearance="outline">
+              <mat-label>Theme</mat-label>
+              <mat-select formControlName="theme">
+                <mat-option value="LIGHT">Light Theme</mat-option>
+                <mat-option value="DARK">Dark Theme</mat-option>
+              </mat-select>
+              <mat-hint>Choose your preferred visual theme</mat-hint>
+            </mat-form-field>
+          </div>
+
+          <div class="form-actions">
+            <button 
+              mat-raised-button 
+              color="primary" 
+              type="submit"
+              [disabled]="preferencesForm.invalid || isSaving">
+              <mat-spinner *ngIf="isSaving" diameter="20"></mat-spinner>
+              <mat-icon *ngIf="!isSaving">save</mat-icon>
+              <span *ngIf="!isSaving">Save Preferences</span>
+            </button>
+          </div>
+        </form>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <div class="loading-section" *ngIf="isLoading">
+    <mat-progress-spinner mode="indeterminate"></mat-progress-spinner>
+    <p>Loading your profile...</p>
+  </div>
+</div>

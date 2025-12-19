@@ -1,0 +1,69 @@
+# Multi-stage Dockerfile for secure code execution environment
+# This creates a minimal, secure environment for running student code
+
+FROM ubuntu:22.04 as base
+
+# Install basic dependencies
+RUN apt-get update && apt-get install -y \
+    curl \
+    wget \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
+
+# Create non-root user for security
+RUN useradd -m -s /bin/bash coderunner
+
+# Java execution environment
+FROM openjdk:21-slim as java-runner
+RUN useradd -m -s /bin/bash coderunner
+WORKDIR /workspace
+USER coderunner
+
+# Python execution environment  
+FROM python:3.11-slim as python-runner
+RUN useradd -m -s /bin/bash coderunner
+WORKDIR /workspace
+USER coderunner
+
+# Node.js execution environment
+FROM node:18-slim as node-runner
+RUN useradd -m -s /bin/bash coderunner
+WORKDIR /workspace
+USER coderunner
+
+# C++ execution environment
+FROM gcc:latest as cpp-runner
+RUN useradd -m -s /bin/bash coderunner
+WORKDIR /workspace
+USER coderunner
+
+# Security-hardened base image
+FROM base as secure-runner
+
+# Install security tools
+RUN apt-get update && apt-get install -y \
+    apparmor \
+    seccomp \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set up secure execution environment
+RUN mkdir -p /secure-workspace && \
+    chown coderunner:coderunner /secure-workspace && \
+    chmod 755 /secure-workspace
+
+# Create restricted environment
+WORKDIR /secure-workspace
+USER coderunner
+
+# Disable network access by default
+ENV NO_NETWORK=true
+
+# Set resource limits
+ENV MEMORY_LIMIT=128m
+ENV CPU_LIMIT=0.5
+ENV TIMEOUT=10s
+
+# Security labels
+LABEL security.level="restricted"
+LABEL security.user="coderunner"
+LABEL security.network="none"

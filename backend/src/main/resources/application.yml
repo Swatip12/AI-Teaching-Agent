@@ -39,3 +39,22 @@ logging:
   level:
     com.aiteachingplatform: DEBUG
     org.springframework.security: DEBUG
+
+# Code execution configuration
+code:
+  execution:
+    enabled: ${CODE_EXECUTION_ENABLED:true}
+    timeout:
+      seconds: ${CODE_EXECUTION_TIMEOUT:10}
+    memory:
+      limit:
+        mb: ${CODE_EXECUTION_MEMORY_LIMIT:128}
+    temp:
+      dir: ${CODE_EXECUTION_TEMP_DIR:/tmp/code-execution}
+    docker:
+      enabled: ${DOCKER_ENABLED:true}
+      images:
+        java: "openjdk:21-slim"
+        python: "python:3.11-slim"
+        javascript: "node:18-slim"
+        cpp: "gcc:latest"
