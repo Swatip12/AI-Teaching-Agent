@@ -33,6 +33,7 @@ server:
 openai:
   api:
     key: ${OPENAI_API_KEY:your-openai-api-key}
+    timeout: ${OPENAI_API_TIMEOUT:60}
 
 logging:
   level:
