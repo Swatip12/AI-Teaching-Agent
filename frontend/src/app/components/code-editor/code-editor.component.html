@@ -1,0 +1,184 @@
+<div class="code-editor-container">
+  <!-- Editor Header -->
+  <div class="editor-header">
+    <div class="editor-controls">
+      <!-- Language Selection -->
+      <mat-select 
+        [(value)]="language" 
+        (selectionChange)="onLanguageChange()"
+        class="language-selector"
+        [disabled]="readOnly">
+        <mat-option *ngFor="let lang of supportedLanguages" [value]="lang">
+          {{ lang }}
+        </mat-option>
+      </mat-select>
+
+      <!-- Action Buttons -->
+      <div class="action-buttons">
+        <button 
+          mat-raised-button 
+          color="primary" 
+          (click)="executeCode()" 
+          [disabled]="isExecuting || readOnly"
+          *ngIf="showRunButton"
+          matTooltip="Run your code">
+          <mat-icon>play_arrow</mat-icon>
+          {{ isExecuting ? 'Running...' : 'Run Code' }}
+        </button>
+
+        <button 
+          mat-stroked-button 
+          (click)="validateCode()" 
+          [disabled]="isValidating || readOnly"
+          *ngIf="showValidateButton"
+          matTooltip="Validate code syntax">
+          <mat-icon>check_circle</mat-icon>
+          {{ isValidating ? 'Validating...' : 'Validate' }}
+        </button>
+
+        <button 
+          mat-stroked-button 
+          (click)="getHints()" 
+          [disabled]="isGettingHints || readOnly"
+          *ngIf="showHintsButton"
+          matTooltip="Get helpful hints">
+          <mat-icon>lightbulb</mat-icon>
+          {{ isGettingHints ? 'Getting Hints...' : 'Get Hints' }}
+        </button>
+
+        <button 
+          mat-icon-button 
+          (click)="toggleInputField()"
+          matTooltip="Toggle program input">
+          <mat-icon>input</mat-icon>
+        </button>
+
+        <button 
+          mat-icon-button 
+          (click)="copyCode()"
+          matTooltip="Copy code to clipboard">
+          <mat-icon>content_copy</mat-icon>
+        </button>
+
+        <button 
+          mat-icon-button 
+          (click)="clearCode()"
+          [disabled]="readOnly"
+          matTooltip="Clear editor">
+          <mat-icon>clear</mat-icon>
+        </button>
+      </div>
+    </div>
+
+    <!-- Program Input Field -->
+    <div class="input-section" *ngIf="showInputField">
+      <mat-form-field appearance="outline" class="input-field">
+        <mat-label>Program Input (stdin)</mat-label>
+        <textarea 
+          matInput 
+          [(ngModel)]="programInput" 
+          placeholder="Enter input for your program..."
+          rows="3"
+          [disabled]="readOnly">
+        </textarea>
+        <mat-hint>This input will be passed to your program via stdin</mat-hint>
+      </mat-form-field>
+    </div>
+  </div>
+
+  <!-- Monaco Editor -->
+  <div class="editor-wrapper" [style.height]="height">
+    <ngx-monaco-editor
+      #monacoEditor
+      [(ngModel)]="code"
+      [options]="editorOptions"
+      (onInit)="onCodeChange(code)"
+      (ngModelChange)="onCodeChange($event)"
+      class="monaco-editor">
+    </ngx-monaco-editor>
+
+    <!-- Loading Overlay -->
+    <div class="loading-overlay" *ngIf="isExecuting || isValidating || isGettingHints">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>
+        {{ isExecuting ? 'Executing code...' : 
+           isValidating ? 'Validating code...' : 
+           'Getting hints...' }}
+      </p>
+    </div>
+  </div>
+
+  <!-- Results Section -->
+  <div class="results-section" *ngIf="executionResult || currentHints.length > 0">
+    
+    <!-- Execution Results -->
+    <mat-card class="result-card" *ngIf="executionResult">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon [class]="isExecutionSuccessful() ? 'success-icon' : 'error-icon'">
+            {{ isExecutionSuccessful() ? 'check_circle' : 'error' }}
+          </mat-icon>
+          Execution Result
+        </mat-card-title>
+        <mat-card-subtitle *ngIf="isExecutionSuccessful()">
+          Completed in {{ getFormattedExecutionTime() }} 
+          <span *ngIf="executionResult.memoryUsageMB > 0">
+            • Memory: {{ getFormattedMemoryUsage() }}
+          </span>
+        </mat-card-subtitle>
+      </mat-card-header>
+
+      <mat-card-content>
+        <!-- Success Output -->
+        <div class="output-section" *ngIf="isExecutionSuccessful() && executionResult.output">
+          <h4>Output:</h4>
+          <pre class="code-output success-output">{{ executionResult.output }}</pre>
+        </div>
+
+        <!-- Error Display -->
+        <div class="error-section" *ngIf="!isExecutionSuccessful()">
+          <h4>Error:</h4>
+          <pre class="code-output error-output">{{ getFormattedErrorMessage() }}</pre>
+          
+          <!-- Compilation Error Details -->
+          <div *ngIf="executionResult.compilationError" class="error-details">
+            <h5>Compilation Details:</h5>
+            <pre class="code-output compilation-error">{{ executionResult.compilationError }}</pre>
+          </div>
+        </div>
+
+        <!-- Execution Status -->
+        <div class="status-info">
+          <span class="status-badge" [class]="'status-' + executionResult.status.toLowerCase()">
+            {{ executionResult.status.replace('_', ' ') }}
+          </span>
+        </div>
+      </mat-card-content>
+    </mat-card>
+
+    <!-- Hints Section -->
+    <mat-card class="hints-card" *ngIf="currentHints.length > 0">
+      <mat-card-header>
+        <mat-card-title>
+          <mat-icon class="hints-icon">lightbulb</mat-icon>
+          Helpful Hints
+        </mat-card-title>
+      </mat-card-header>
+      <mat-card-content>
+        <div class="hints-list">
+          <div class="hint-item" *ngFor="let hint of currentHints">
+            <mat-icon class="hint-bullet">arrow_right</mat-icon>
+            <span>{{ hint }}</span>
+          </div>
+        </div>
+      </mat-card-content>
+    </mat-card>
+  </div>
+
+  <!-- Empty State -->
+  <div class="empty-state" *ngIf="!code.trim() && !readOnly">
+    <mat-icon class="empty-icon">code</mat-icon>
+    <h3>Ready to Code!</h3>
+    <p>{{ placeholder }}</p>
+  </div>
+</div>

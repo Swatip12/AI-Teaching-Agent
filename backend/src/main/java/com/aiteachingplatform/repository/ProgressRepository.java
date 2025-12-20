@@ -29,6 +29,11 @@ public interface ProgressRepository extends JpaRepository<Progress, Long> {
     List<Progress> findByUserOrderByUpdatedAtDesc(User user);
     
     /**
+     * Find all progress for a user by user ID
+     */
+    List<Progress> findByUserIdOrderByUpdatedAtDesc(Long userId);
+    
+    /**
      * Find progress by user and subject
      */
     @Query("SELECT p FROM Progress p JOIN p.lesson l WHERE p.user = :user AND l.subject = :subject ORDER BY l.sequenceOrder")

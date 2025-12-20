@@ -73,4 +73,9 @@ public interface LessonRepository extends JpaRepository<Lesson, Long> {
      * Check if lesson exists with specific sequence order in subject
      */
     boolean existsBySubjectAndSequenceOrder(String subject, Integer sequenceOrder);
+    
+    /**
+     * Find lessons by subject and content containing specific text
+     */
+    List<Lesson> findBySubjectAndContentContaining(String subject, String content);
 }

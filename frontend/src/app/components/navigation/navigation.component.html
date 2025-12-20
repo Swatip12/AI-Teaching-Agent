@@ -12,6 +12,20 @@
         <mat-icon>dashboard</mat-icon>
         Dashboard
       </button>
+      
+      <!-- Sync Status Indicator -->
+      <button mat-icon-button 
+              (click)="onSyncProgress()" 
+              [matTooltip]="getSyncStatusTooltip()"
+              [class.offline]="!isOnline"
+              [class.syncing]="syncStatus === 'syncing'"
+              [class.sync-failed]="syncStatus === 'failed'">
+        <mat-icon [matBadge]="!isOnline ? '!' : null" 
+                  matBadgeColor="warn" 
+                  matBadgeSize="small">
+          {{ getSyncStatusIcon() }}
+        </mat-icon>
+      </button>
     </div>
 
     <!-- User Menu (when authenticated) -->

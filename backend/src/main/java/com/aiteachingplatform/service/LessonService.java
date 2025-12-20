@@ -67,6 +67,14 @@ public class LessonService {
     }
     
     /**
+     * Find lesson by ID (alias for getLessonById)
+     */
+    @Transactional(readOnly = true)
+    public Optional<Lesson> findById(Long id) {
+        return lessonRepository.findById(id);
+    }
+    
+    /**
      * Get all lessons with pagination
      */
     @Transactional(readOnly = true)

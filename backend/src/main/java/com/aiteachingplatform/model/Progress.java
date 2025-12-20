@@ -80,6 +80,12 @@ public class Progress {
     @Column(name = "practice_questions_completed")
     private Integer practiceQuestionsCompleted = 0;
     
+    @Column(name = "device_type")
+    private String deviceType;
+    
+    @Column(name = "current_step")
+    private String currentStep;
+    
     // Constructors
     public Progress() {}
     
@@ -227,6 +233,22 @@ public class Progress {
     
     public void setPracticeQuestionsCompleted(Integer practiceQuestionsCompleted) {
         this.practiceQuestionsCompleted = practiceQuestionsCompleted;
+    }
+    
+    public String getDeviceType() {
+        return deviceType;
+    }
+    
+    public void setDeviceType(String deviceType) {
+        this.deviceType = deviceType;
+    }
+    
+    public String getCurrentStep() {
+        return currentStep;
+    }
+    
+    public void setCurrentStep(String currentStep) {
+        this.currentStep = currentStep;
     }
     
     public enum ProgressStatus {

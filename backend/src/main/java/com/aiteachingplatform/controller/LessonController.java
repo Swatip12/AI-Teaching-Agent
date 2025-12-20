@@ -1,10 +1,16 @@
 package com.aiteachingplatform.controller;
 
 import com.aiteachingplatform.dto.MessageResponse;
+import com.aiteachingplatform.dto.QuestionFeedbackResponse;
+import com.aiteachingplatform.dto.QuestionSubmissionRequest;
+import com.aiteachingplatform.model.CheckpointQuestion;
 import com.aiteachingplatform.model.Lesson;
+import com.aiteachingplatform.model.PracticeQuestion;
 import com.aiteachingplatform.model.User;
+import com.aiteachingplatform.repository.LessonRepository;
 import com.aiteachingplatform.security.UserDetailsImpl;
 import com.aiteachingplatform.service.LessonService;
+import com.aiteachingplatform.service.QuestionFeedbackService;
 import com.aiteachingplatform.service.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -35,6 +41,12 @@ public class LessonController {
     
     @Autowired
     private UserService userService;
+    
+    @Autowired
+    private QuestionFeedbackService questionFeedbackService;
+    
+    @Autowired
+    private LessonRepository lessonRepository;
     
     /**
      * Create a new lesson (Admin only)
@@ -321,6 +333,114 @@ public class LessonController {
         return ResponseEntity.ok(count);
     }
     
+    /**
+     * Submit answer for checkpoint question and receive immediate feedback
+     * Requirements 3.1: Immediate feedback on checkpoint questions
+     */
+    @PostMapping("/checkpoint-questions/{questionId}/submit")
+    public ResponseEntity<?> submitCheckpointAnswer(
+            @PathVariable Long questionId,
+            @Valid @RequestBody QuestionSubmissionRequest request,
+            Authentication authentication) {
+        try {
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            Optional<User> user = userService.findById(userDetails.getId());
+            
+            if (user.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new MessageResponse("User not found"));
+            }
+            
+            // Find the checkpoint question
+            CheckpointQuestion question = findCheckpointQuestionById(questionId);
+            if (question == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Check if user can access the lesson containing this question
+            if (!lessonService.canUserAccessLesson(user.get(), question.getLesson())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new MessageResponse("Access denied: Prerequisites not completed"));
+            }
+            
+            // Evaluate answer and provide immediate feedback
+            QuestionFeedbackResponse feedback = questionFeedbackService.evaluateCheckpointAnswer(
+                question, request.getAnswer(), user
+            );
+            
+            return ResponseEntity.ok(feedback);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Error processing answer: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Submit answer for practice question and receive immediate feedback
+     * Requirements 3.3: Feedback on practice questions with explanations
+     */
+    @PostMapping("/practice-questions/{questionId}/submit")
+    public ResponseEntity<?> submitPracticeAnswer(
+            @PathVariable Long questionId,
+            @Valid @RequestBody QuestionSubmissionRequest request,
+            Authentication authentication) {
+        try {
+            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();
+            Optional<User> user = userService.findById(userDetails.getId());
+            
+            if (user.isEmpty()) {
+                return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                        .body(new MessageResponse("User not found"));
+            }
+            
+            // Find the practice question
+            PracticeQuestion question = findPracticeQuestionById(questionId);
+            if (question == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Check if user can access the lesson containing this question
+            if (!lessonService.canUserAccessLesson(user.get(), question.getLesson())) {
+                return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                        .body(new MessageResponse("Access denied: Prerequisites not completed"));
+            }
+            
+            // Evaluate answer and provide immediate feedback
+            QuestionFeedbackResponse feedback = questionFeedbackService.evaluatePracticeAnswer(
+                question, request.getAnswer(), user
+            );
+            
+            return ResponseEntity.ok(feedback);
+            
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(new MessageResponse("Error processing answer: " + e.getMessage()));
+        }
+    }
+    
+    /**
+     * Helper method to find checkpoint question by ID
+     */
+    private CheckpointQuestion findCheckpointQuestionById(Long questionId) {
+        return lessonRepository.findAll().stream()
+                .flatMap(lesson -> lesson.getCheckpointQuestions().stream())
+                .filter(question -> question.getId().equals(questionId))
+                .findFirst()
+                .orElse(null);
+    }
+    
+    /**
+     * Helper method to find practice question by ID
+     */
+    private PracticeQuestion findPracticeQuestionById(Long questionId) {
+        return lessonRepository.findAll().stream()
+                .flatMap(lesson -> lesson.getPracticeQuestions().stream())
+                .filter(question -> question.getId().equals(questionId))
+                .findFirst()
+                .orElse(null);
+    }
+
     /**
      * Response class for access check
      */

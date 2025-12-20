@@ -1,0 +1,299 @@
+<div class="lesson-container" *ngIf="!loading">
+  <!-- Error State -->
+  <div class="error-message" *ngIf="error">
+    <h2>Oops! Something went wrong</h2>
+    <p>{{ error }}</p>
+    <button class="btn btn-primary" (click)="navigateToDashboard()">
+      Back to Dashboard
+    </button>
+  </div>
+
+  <!-- Lesson Content -->
+  <div class="lesson-content" *ngIf="lesson && !error">
+    <!-- Header -->
+    <div class="lesson-header">
+      <div class="lesson-info">
+        <h1>{{ lesson.title }}</h1>
+        <div class="lesson-meta">
+          <span class="subject-badge">{{ lesson.subject }}</span>
+          <span class="difficulty-badge" [style.background-color]="getDifficultyColor(lesson.difficulty)">
+            {{ lesson.difficulty }}
+          </span>
+          <span class="duration">{{ lesson.estimatedDurationMinutes }} min</span>
+        </div>
+      </div>
+      
+      <!-- Progress Indicator -->
+      <div class="progress-section" *ngIf="progress">
+        <div class="progress-bar">
+          <div class="progress-fill" [style.width.%]="getProgressPercentage()"></div>
+        </div>
+        <span class="progress-text">
+          Step {{ progress.currentStep }} of {{ progress.totalSteps }}
+        </span>
+      </div>
+    </div>
+
+    <!-- Learning Objectives -->
+    <div class="objectives-section" *ngIf="lesson.objectives">
+      <h3>What you'll learn:</h3>
+      <p>{{ lesson.objectives }}</p>
+    </div>
+
+    <!-- Content Step -->
+    <div class="content-step" *ngIf="currentStep === 'content'">
+      <div class="content-body">
+        <div [innerHTML]="formatContent(lesson.content)"></div>
+      </div>
+      
+      <div class="step-actions">
+        <button 
+          class="btn btn-primary btn-large"
+          (click)="proceedToCheckpoints()"
+          [disabled]="!lesson.checkpointQuestions.length">
+          Ready for Checkpoint Questions
+        </button>
+      </div>
+    </div>
+
+    <!-- Checkpoint Questions Step -->
+    <div class="checkpoint-step" *ngIf="currentStep === 'checkpoint'">
+      <div class="question-header">
+        <h3>Checkpoint Question {{ currentQuestionIndex + 1 }}</h3>
+        <p class="question-subtitle">Let's check your understanding</p>
+      </div>
+
+      <div class="question-content" *ngIf="getCurrentCheckpointQuestion() as question">
+        <div class="question-text">
+          <p>{{ question.question }}</p>
+        </div>
+
+        <!-- Answer Input -->
+        <div class="answer-section" *ngIf="!showExplanation">
+          <div class="answer-input" [ngSwitch]="question.questionType">
+            <!-- Multiple Choice -->
+            <div *ngSwitchCase="'MULTIPLE_CHOICE'" class="multiple-choice">
+              <textarea 
+                [(ngModel)]="userAnswer" 
+                placeholder="Type your answer here..."
+                class="answer-textarea"
+                rows="3">
+              </textarea>
+            </div>
+
+            <!-- True/False -->
+            <div *ngSwitchCase="'TRUE_FALSE'" class="true-false">
+              <label class="radio-option">
+                <input type="radio" [(ngModel)]="userAnswer" value="true" name="tf-answer">
+                True
+              </label>
+              <label class="radio-option">
+                <input type="radio" [(ngModel)]="userAnswer" value="false" name="tf-answer">
+                False
+              </label>
+            </div>
+
+            <!-- Short Answer -->
+            <div *ngSwitchCase="'SHORT_ANSWER'" class="short-answer">
+              <input 
+                type="text" 
+                [(ngModel)]="userAnswer" 
+                placeholder="Your answer..."
+                class="answer-input-field">
+            </div>
+
+            <!-- Code Completion -->
+            <div *ngSwitchCase="'CODE_COMPLETION'" class="code-completion">
+              <textarea 
+                [(ngModel)]="userAnswer" 
+                placeholder="Complete the code..."
+                class="code-textarea"
+                rows="5">
+              </textarea>
+            </div>
+          </div>
+
+          <button 
+            class="btn btn-primary"
+            (click)="submitCheckpointAnswer()"
+            [disabled]="!userAnswer.trim() || isSubmitting">
+            <span *ngIf="isSubmitting">Checking...</span>
+            <span *ngIf="!isSubmitting">Submit Answer</span>
+          </button>
+        </div>
+
+        <!-- Feedback Section -->
+        <div class="feedback-section" *ngIf="feedback && showExplanation">
+          <div class="feedback-card" [class.correct]="feedback.isCorrect" [class.incorrect]="!feedback.isCorrect">
+            <div class="feedback-header">
+              <span class="feedback-icon" *ngIf="feedback.isCorrect">✓</span>
+              <span class="feedback-icon" *ngIf="!feedback.isCorrect">✗</span>
+              <h4>{{ feedback.isCorrect ? 'Excellent!' : 'Not quite right' }}</h4>
+              <span class="feedback-timestamp">{{ formatTimestamp(feedback.timestamp) }}</span>
+            </div>
+            
+            <div class="feedback-content">
+              <p class="feedback-message">{{ feedback.feedback }}</p>
+              <div class="explanation" *ngIf="feedback.explanation">
+                <h5>Explanation:</h5>
+                <p [innerHTML]="formatContent(feedback.explanation)"></p>
+              </div>
+              
+              <!-- Additional encouragement for immediate feedback -->
+              <div class="encouragement" *ngIf="!feedback.isCorrect">
+                <p class="encouragement-text">
+                  💡 Remember: Every mistake is a learning opportunity. Take your time to understand the concept!
+                </p>
+              </div>
+              
+              <div class="success-reinforcement" *ngIf="feedback.isCorrect">
+                <p class="success-text">
+                  🎉 You're making great progress! Keep up the excellent work!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button 
+              class="btn btn-primary"
+              (click)="isLastCheckpointQuestion() ? proceedToPractice() : proceedToNextQuestion()"
+              [disabled]="!canProceedToNext()">
+              {{ isLastCheckpointQuestion() ? 'Continue to Practice' : 'Next Question' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Practice Questions Step -->
+    <div class="practice-step" *ngIf="currentStep === 'practice'">
+      <div class="question-header">
+        <h3>Practice Question {{ currentQuestionIndex + 1 }}</h3>
+        <p class="question-subtitle">Apply what you've learned</p>
+      </div>
+
+      <div class="question-content" *ngIf="getCurrentPracticeQuestion() as question">
+        <div class="question-text">
+          <p>{{ question.question }}</p>
+          <div class="question-meta">
+            <span class="difficulty-badge" [style.background-color]="getDifficultyColor(question.difficulty)">
+              {{ question.difficulty }}
+            </span>
+            <span class="question-type">{{ question.questionType }}</span>
+          </div>
+        </div>
+
+        <!-- Starter Code (if available) -->
+        <div class="starter-code" *ngIf="question.starterCode">
+          <h5>Starter Code:</h5>
+          <pre><code>{{ question.starterCode }}</code></pre>
+        </div>
+
+        <!-- Answer Input -->
+        <div class="answer-section" *ngIf="!showExplanation">
+          <!-- Code Editor for Coding Questions -->
+          <div class="coding-answer" *ngIf="isCurrentQuestionCoding()">
+            <app-code-editor
+              [initialCode]="getCurrentQuestionStarterCode()"
+              [language]="getCurrentQuestionLanguage()"
+              [lessonId]="lesson.id"
+              [expectedOutput]="getCurrentQuestionExpectedOutput()"
+              [height]="'500px'"
+              [showRunButton]="true"
+              [showHintsButton]="true"
+              [showValidateButton]="true"
+              (codeChange)="onCodeChange($event)"
+              (codeExecuted)="onCodeExecuted($event)"
+              (validationResult)="onValidationResult($event)">
+            </app-code-editor>
+          </div>
+
+          <!-- Regular Text Answer for Non-Coding Questions -->
+          <div class="practice-answer" *ngIf="!isCurrentQuestionCoding()">
+            <textarea 
+              [(ngModel)]="userAnswer" 
+              placeholder="Write your solution here..."
+              class="practice-textarea"
+              rows="8">
+            </textarea>
+          </div>
+
+          <div class="action-buttons">
+            <button 
+              class="btn btn-secondary"
+              *ngIf="question.hints"
+              (click)="showHints = !showHints">
+              {{ showHints ? 'Hide' : 'Show' }} Hints
+            </button>
+            
+            <button 
+              class="btn btn-primary"
+              (click)="submitPracticeAnswer()"
+              [disabled]="!userAnswer.trim() || isSubmitting"
+              *ngIf="!isCurrentQuestionCoding()">
+              <span *ngIf="isSubmitting">Evaluating...</span>
+              <span *ngIf="!isSubmitting">Submit Solution</span>
+            </button>
+          </div>
+
+          <!-- Hints Section -->
+          <div class="hints-section" *ngIf="showHints && question.hints">
+            <div class="hints-card">
+              <h5>💡 Hints:</h5>
+              <p>{{ question.hints }}</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feedback Section -->
+        <div class="feedback-section" *ngIf="feedback && showExplanation">
+          <div class="feedback-card" [class.correct]="feedback.isCorrect" [class.incorrect]="!feedback.isCorrect">
+            <div class="feedback-header">
+              <span class="feedback-icon" *ngIf="feedback.isCorrect">✓</span>
+              <span class="feedback-icon" *ngIf="!feedback.isCorrect">✗</span>
+              <h4>{{ feedback.isCorrect ? 'Great work!' : 'Keep trying!' }}</h4>
+              <span class="feedback-timestamp">{{ formatTimestamp(feedback.timestamp) }}</span>
+            </div>
+            
+            <div class="feedback-content">
+              <p class="feedback-message">{{ feedback.feedback }}</p>
+              <div class="explanation" *ngIf="feedback.explanation">
+                <h5>Explanation:</h5>
+                <p [innerHTML]="formatContent(feedback.explanation)"></p>
+              </div>
+              
+              <!-- Additional encouragement for immediate feedback -->
+              <div class="encouragement" *ngIf="!feedback.isCorrect">
+                <p class="encouragement-text">
+                  💡 Practice makes perfect! Review the explanation and try similar problems to strengthen your understanding.
+                </p>
+              </div>
+              
+              <div class="success-reinforcement" *ngIf="feedback.isCorrect">
+                <p class="success-text">
+                  🌟 Fantastic solution! You're demonstrating excellent problem-solving skills!
+                </p>
+              </div>
+            </div>
+          </div>
+
+          <div class="step-actions">
+            <button 
+              class="btn btn-primary"
+              (click)="isLastPracticeQuestion() ? completeLesson() : proceedToNextQuestion()"
+              [disabled]="!canProceedToNext()">
+              {{ isLastPracticeQuestion() ? 'Complete Lesson' : 'Next Question' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Loading State -->
+<div class="loading-container" *ngIf="loading">
+  <div class="loading-spinner"></div>
+  <p>Loading lesson...</p>
+</div>

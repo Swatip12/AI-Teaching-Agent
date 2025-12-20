@@ -123,4 +123,118 @@ mat-menu-item {
   .nav-links {
     display: none; // Hide nav links on mobile, keep user menu
   }
+  
+  .brand-section {
+    .brand-icon {
+      font-size: 24px;
+      width: 24px;
+      height: 24px;
+    }
+  }
+  
+  .user-section {
+    button {
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .nav-container {
+    padding: 0 4px;
+  }
+  
+  .brand-text {
+    font-size: 14px;
+  }
+  
+  .brand-section {
+    .brand-icon {
+      font-size: 20px;
+      width: 20px;
+      height: 20px;
+    }
+  }
+  
+  .user-section {
+    button {
+      mat-icon {
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+}
+
+// Tablet landscape orientation
+@media (max-width: 1024px) and (orientation: landscape) {
+  .nav-container {
+    max-width: 100%;
+  }
+  
+  .nav-links {
+    gap: 4px;
+    
+    button {
+      padding: 8px 12px;
+      font-size: 14px;
+    }
+  }
+}
+
+// High DPI displays
+@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+  .brand-icon, .user-section mat-icon, .nav-links mat-icon {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+// Sync status styles
+.nav-links {
+  button.offline {
+    color: #ff9800;
+    
+    mat-icon {
+      animation: pulse 2s infinite;
+    }
+  }
+  
+  button.syncing {
+    color: #2196f3;
+    
+    mat-icon {
+      animation: spin 1s linear infinite;
+    }
+  }
+  
+  button.sync-failed {
+    color: #f44336;
+    
+    mat-icon {
+      animation: shake 0.5s ease-in-out;
+    }
+  }
+}
+
+// Animations
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-2px); }
+  75% { transform: translateX(2px); }
 }

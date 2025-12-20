@@ -159,8 +159,136 @@ mat-card-actions {
     padding: 16px;
   }
   
+  .welcome-section {
+    margin-bottom: 24px;
+    
+    h1 {
+      font-size: 24px;
+    }
+    
+    p {
+      font-size: 14px;
+    }
+  }
+  
   .subjects-grid {
     grid-template-columns: 1fr;
     gap: 16px;
+  }
+  
+  .subject-card {
+    mat-card-header {
+      mat-icon {
+        font-size: 28px;
+        width: 28px;
+        height: 28px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .dashboard-container {
+    padding: 12px;
+  }
+  
+  .welcome-section {
+    margin-bottom: 20px;
+    
+    h1 {
+      font-size: 20px;
+    }
+    
+    p {
+      font-size: 13px;
+    }
+  }
+  
+  .subjects-grid {
+    gap: 12px;
+  }
+  
+  .subject-card {
+    mat-card-header {
+      margin-bottom: 12px;
+      
+      mat-icon {
+        font-size: 24px;
+        width: 24px;
+        height: 24px;
+      }
+      
+      mat-card-title {
+        font-size: 16px;
+      }
+    }
+    
+    mat-card-content {
+      font-size: 14px;
+    }
+  }
+  
+  mat-card-actions {
+    button {
+      height: 36px;
+      font-size: 14px;
+    }
+  }
+}
+
+// Tablet landscape
+@media (min-width: 769px) and (max-width: 1024px) {
+  .subjects-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 20px;
+  }
+}
+
+// Large screens
+@media (min-width: 1200px) {
+  .subjects-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+// Touch device optimizations
+@media (hover: none) and (pointer: coarse) {
+  .subject-card {
+    &.accessible {
+      &:active {
+        transform: scale(0.98);
+        transition: transform 0.1s ease;
+      }
+    }
+  }
+  
+  mat-card-actions button {
+    min-height: 44px; // Minimum touch target size
+  }
+}
+
+// High contrast mode support
+@media (prefers-contrast: high) {
+  .subject-card {
+    border: 2px solid #000;
+    
+    &.locked {
+      border-color: #666;
+    }
+    
+    &.accessible:hover {
+      border-color: #0066cc;
+    }
+  }
+}
+
+// Reduced motion support
+@media (prefers-reduced-motion: reduce) {
+  .subject-card {
+    transition: none;
+    
+    &.accessible:hover {
+      transform: none;
+    }
   }
 }
