@@ -3,7 +3,10 @@ package com.aiteachingplatform.service;
 import com.aiteachingplatform.model.Lesson;
 import com.aiteachingplatform.model.Progress;
 import com.aiteachingplatform.model.User;
+import com.aiteachingplatform.exception.BusinessException;
+import com.aiteachingplatform.exception.ResourceNotFoundException;
 import com.aiteachingplatform.repository.LessonRepository;
+import org.springframework.http.HttpStatus;
 import com.aiteachingplatform.repository.ProgressRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.Page;
@@ -42,7 +45,7 @@ public class LessonService {
     public Lesson updateLesson(Long id, Lesson lessonDetails) {
         Optional<Lesson> existingLesson = lessonRepository.findById(id);
         if (existingLesson.isEmpty()) {
-            throw new RuntimeException("Lesson not found with id: " + id);
+            throw new ResourceNotFoundException("Lesson", id.toString());
         }
         
         Lesson lesson = existingLesson.get();
@@ -173,13 +176,15 @@ public class LessonService {
     public void deleteLesson(Long id) {
         Optional<Lesson> lesson = lessonRepository.findById(id);
         if (lesson.isEmpty()) {
-            throw new RuntimeException("Lesson not found with id: " + id);
+            throw new ResourceNotFoundException("Lesson", id.toString());
         }
         
         // Check if lesson is a prerequisite for other lessons
         List<Lesson> dependentLessons = lessonRepository.findLessonsWithPrerequisite(id);
         if (!dependentLessons.isEmpty()) {
-            throw new RuntimeException("Cannot delete lesson as it is a prerequisite for other lessons");
+            throw new BusinessException("LESSON_HAS_DEPENDENTS", 
+                "Cannot delete lesson as it is a prerequisite for other lessons", 
+                HttpStatus.CONFLICT);
         }
         
         lessonRepository.deleteById(id);

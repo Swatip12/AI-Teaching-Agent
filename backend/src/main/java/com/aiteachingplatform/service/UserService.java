@@ -3,7 +3,9 @@ package com.aiteachingplatform.service;
 import com.aiteachingplatform.dto.*;
 import com.aiteachingplatform.model.User;
 import com.aiteachingplatform.model.UserPreferences;
+import com.aiteachingplatform.exception.BusinessException;
 import com.aiteachingplatform.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import com.aiteachingplatform.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -43,12 +45,12 @@ public class UserService {
     public AuthResponse registerUser(RegisterRequest request) {
         // Check if username already exists
         if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username is already taken!");
+            throw new BusinessException("USERNAME_TAKEN", "Username is already taken!", HttpStatus.CONFLICT);
         }
         
         // Check if email already exists
         if (userRepository.existsByEmail(request.getEmail())) {
-            throw new RuntimeException("Email is already in use!");
+            throw new BusinessException("EMAIL_IN_USE", "Email is already in use!", HttpStatus.CONFLICT);
         }
         
         // Create new user

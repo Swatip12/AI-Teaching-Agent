@@ -60,6 +60,13 @@ public class AITutorResponse {
         return response;
     }
     
+    public static AITutorResponse fallback(String fallbackResponse) {
+        AITutorResponse response = new AITutorResponse(fallbackResponse);
+        response.setResponseStatus(AIConversation.ResponseStatus.FALLBACK);
+        response.setSuggestedAction("AI service temporarily unavailable - using fallback response");
+        return response;
+    }
+    
     // Business methods
     public boolean isSuccessful() {
         return responseStatus == AIConversation.ResponseStatus.COMPLETED && aiResponse != null;

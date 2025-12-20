@@ -4,7 +4,11 @@ import com.aiteachingplatform.dto.AITutorRequest;
 import com.aiteachingplatform.dto.AITutorResponse;
 import com.aiteachingplatform.model.*;
 import com.aiteachingplatform.repository.AIConversationRepository;
+import com.aiteachingplatform.exception.AIServiceException;
 import com.aiteachingplatform.repository.LessonRepository;
+import com.aiteachingplatform.service.LoggingService;
+
+import java.util.Map;
 import com.theokanning.openai.completion.chat.ChatCompletionRequest;
 import com.theokanning.openai.completion.chat.ChatCompletionResult;
 import com.theokanning.openai.completion.chat.ChatMessage;
@@ -44,6 +48,9 @@ public class AITutorService {
     @Autowired
     private LessonRepository lessonRepository;
     
+    @Autowired
+    private LoggingService loggingService;
+    
     /**
      * Process AI tutor request and generate response
      */
@@ -71,6 +78,16 @@ public class AITutorService {
             conversation.setAIResponse(filteredResponse, responseTime);
             conversationRepository.save(conversation);
             
+            // Log successful AI service interaction
+            loggingService.logAIServiceInteraction(
+                "PROCESS_REQUEST", 
+                "OpenAI", 
+                true, 
+                responseTime, 
+                user.getId(), 
+                null
+            );
+            
             // Create response DTO
             AITutorResponse response = AITutorResponse.success(filteredResponse, responseTime);
             response.setConversationId(conversation.getId());
@@ -80,12 +97,49 @@ public class AITutorService {
             logger.info("Successfully processed AI request in {}ms", responseTime);
             return response;
             
-        } catch (Exception e) {
-            logger.error("Error processing AI tutor request for user: {}", user.getUsername(), e);
+        } catch (AIServiceException e) {
+            logger.error("AI service error for user: {}", user.getUsername(), e);
+            
+            // Log AI service interaction
+            loggingService.logAIServiceInteraction(
+                "PROCESS_REQUEST", 
+                e.getServiceType(), 
+                false, 
+                System.currentTimeMillis() - startTime, 
+                user.getId(), 
+                e.getMessage()
+            );
             
             // Create failed conversation record
             AIConversation failedConversation = createConversation(user, request);
-            failedConversation.markAsFailed("Error: " + e.getMessage());
+            failedConversation.markAsFailed("AI Service Error: " + e.getMessage());
+            conversationRepository.save(failedConversation);
+            
+            // Return fallback response based on conversation type
+            String fallbackResponse = getFallbackResponse(request.getConversationType(), request.getStudentMessage());
+            return AITutorResponse.fallback(fallbackResponse);
+            
+        } catch (Exception e) {
+            logger.error("Unexpected error processing AI tutor request for user: {}", user.getUsername(), e);
+            
+            // Log error with context
+            Map<String, Object> context = Map.of(
+                "conversationType", request.getConversationType().toString(),
+                "lessonId", request.getLessonId() != null ? request.getLessonId().toString() : "none",
+                "messageLength", request.getStudentMessage().length()
+            );
+            
+            loggingService.logError(
+                "AI_TUTOR_REQUEST", 
+                "Unexpected error processing AI tutor request", 
+                e, 
+                user.getId(), 
+                context
+            );
+            
+            // Create failed conversation record
+            AIConversation failedConversation = createConversation(user, request);
+            failedConversation.markAsFailed("System Error: " + e.getMessage());
             conversationRepository.save(failedConversation);
             
             return AITutorResponse.failure("I'm having trouble responding right now. Please try again in a moment.");
@@ -216,20 +270,49 @@ public class AITutorService {
     }
     
     private String generateAIResponse(List<ChatMessage> messages) {
-        ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
-            .model(GPT_MODEL)
-            .messages(messages)
-            .maxTokens(MAX_TOKENS)
-            .temperature(TEMPERATURE)
-            .build();
-        
-        ChatCompletionResult result = openAiService.createChatCompletion(completionRequest);
-        
-        if (result.getChoices() != null && !result.getChoices().isEmpty()) {
-            return result.getChoices().get(0).getMessage().getContent().trim();
+        try {
+            ChatCompletionRequest completionRequest = ChatCompletionRequest.builder()
+                .model(GPT_MODEL)
+                .messages(messages)
+                .maxTokens(MAX_TOKENS)
+                .temperature(TEMPERATURE)
+                .build();
+            
+            ChatCompletionResult result = openAiService.createChatCompletion(completionRequest);
+            
+            if (result.getChoices() != null && !result.getChoices().isEmpty()) {
+                return result.getChoices().get(0).getMessage().getContent().trim();
+            }
+            
+            throw new AIServiceException("No response generated from OpenAI");
+            
+        } catch (Exception e) {
+            logger.error("Error calling OpenAI API: {}", e.getMessage(), e);
+            
+            // Determine if this is a retryable error
+            boolean isRetryable = isRetryableError(e);
+            
+            if (e.getMessage().contains("rate limit") || e.getMessage().contains("quota")) {
+                throw new AIServiceException("AI service rate limit exceeded. Please try again in a moment.", "OpenAI", true);
+            } else if (e.getMessage().contains("timeout") || e.getMessage().contains("connection")) {
+                throw new AIServiceException("AI service connection timeout. Please try again.", "OpenAI", true);
+            } else if (e.getMessage().contains("authentication") || e.getMessage().contains("unauthorized")) {
+                throw new AIServiceException("AI service authentication error.", "OpenAI", false);
+            } else {
+                throw new AIServiceException("AI service temporarily unavailable: " + e.getMessage(), "OpenAI", isRetryable);
+            }
         }
-        
-        throw new RuntimeException("No response generated from OpenAI");
+    }
+    
+    private boolean isRetryableError(Exception e) {
+        String message = e.getMessage().toLowerCase();
+        return message.contains("timeout") || 
+               message.contains("connection") || 
+               message.contains("rate limit") ||
+               message.contains("server error") ||
+               message.contains("503") ||
+               message.contains("502") ||
+               message.contains("500");
     }
     
     private String validateAndFilterResponse(String response, AIConversation.ConversationType type) {
@@ -283,6 +366,38 @@ public class AITutorService {
             default:
                 return "I'm here to help you learn. What specific aspect would you like me to explain?";
         }
+    }
+    
+    /**
+     * Get contextual fallback response when AI service is unavailable
+     * Requirement 6.3: Error handling with fallback responses
+     */
+    private String getFallbackResponse(AIConversation.ConversationType type, String studentMessage) {
+        // Try to provide contextual fallback based on student message
+        if (studentMessage != null && !studentMessage.trim().isEmpty()) {
+            String lowerMessage = studentMessage.toLowerCase();
+            
+            if (lowerMessage.contains("error") || lowerMessage.contains("bug") || lowerMessage.contains("wrong")) {
+                return "I see you're encountering an issue. While I'm temporarily unavailable, here's a general tip: " +
+                       "carefully check your syntax, variable names, and make sure all brackets are properly closed. " +
+                       "Try running your code step by step to identify where the problem occurs.";
+            }
+            
+            if (lowerMessage.contains("how") || lowerMessage.contains("what") || lowerMessage.contains("why")) {
+                return "That's an excellent question! While I'm temporarily unavailable, I encourage you to: " +
+                       "1) Review the lesson material, 2) Try breaking down the problem into smaller parts, " +
+                       "3) Look for similar examples in the course content. I'll be back soon to provide detailed help!";
+            }
+            
+            if (lowerMessage.contains("help") || lowerMessage.contains("stuck") || lowerMessage.contains("confused")) {
+                return "I understand you need assistance, and I'm sorry I'm temporarily unavailable. " +
+                       "In the meantime, try reviewing the previous examples in this lesson, " +
+                       "and remember that making mistakes is a normal part of learning. Keep practicing!";
+            }
+        }
+        
+        // Fall back to type-based response
+        return getFallbackResponse(type);
     }
     
     private Integer calculateConfidenceScore(String response) {

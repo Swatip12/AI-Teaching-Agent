@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
-import { BehaviorSubject, Observable, tap } from 'rxjs';
+import { HttpClient, HttpErrorResponse } from '@angular/common/http';
+import { BehaviorSubject, Observable, tap, throwError, catchError } from 'rxjs';
 import { Router } from '@angular/router';
+import { MatSnackBar } from '@angular/material/snack-bar';
 
 export interface User {
   id: number;
@@ -38,7 +39,8 @@ export class AuthService {
 
   constructor(
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private snackBar: MatSnackBar
   ) {
     // Check for existing token on service initialization
     const token = localStorage.getItem('auth_token');
@@ -55,7 +57,9 @@ export class AuthService {
       .pipe(
         tap((response: AuthResponse) => {
           this.setAuthData(response.token, response.user);
-        })
+          this.snackBar.open('Welcome back!', 'Dismiss', { duration: 3000 });
+        }),
+        catchError((error: HttpErrorResponse) => this.handleAuthError(error, 'login'))
       );
   }
 
@@ -64,7 +68,9 @@ export class AuthService {
       .pipe(
         tap((response: AuthResponse) => {
           this.setAuthData(response.token, response.user);
-        })
+          this.snackBar.open('Account created successfully!', 'Dismiss', { duration: 3000 });
+        }),
+        catchError((error: HttpErrorResponse) => this.handleAuthError(error, 'register'))
       );
   }
 
@@ -93,5 +99,30 @@ export class AuthService {
     localStorage.setItem('current_user', JSON.stringify(user));
     this.tokenSubject.next(token);
     this.currentUserSubject.next(user);
+  }
+
+  private handleAuthError(error: HttpErrorResponse, operation: string): Observable<never> {
+    let errorMessage = 'An error occurred. Please try again.';
+    
+    if (error.status === 401) {
+      errorMessage = operation === 'login' ? 
+        'Invalid username or password.' : 
+        'Authentication failed.';
+    } else if (error.status === 409) {
+      errorMessage = 'Username or email already exists.';
+    } else if (error.status === 400) {
+      errorMessage = error.error?.message || 'Invalid input. Please check your information.';
+    } else if (error.status === 0) {
+      errorMessage = 'Unable to connect to the server. Please check your internet connection.';
+    } else if (error.status >= 500) {
+      errorMessage = 'Server error. Please try again later.';
+    }
+
+    this.snackBar.open(errorMessage, 'Dismiss', { 
+      duration: 6000,
+      panelClass: ['snackbar-error']
+    });
+
+    return throwError(() => error);
   }
 }

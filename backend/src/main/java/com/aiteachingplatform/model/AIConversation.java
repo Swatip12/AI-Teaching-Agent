@@ -200,7 +200,7 @@ public class AIConversation {
     }
     
     public enum ResponseStatus {
-        PENDING, COMPLETED, FAILED
+        PENDING, COMPLETED, FAILED, FALLBACK
     }
     
     @Override

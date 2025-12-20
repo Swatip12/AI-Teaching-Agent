@@ -1,7 +1,8 @@
 import { Injectable } from '@angular/core';
-import { HttpClient, HttpHeaders } from '@angular/common/http';
+import { HttpClient, HttpHeaders, HttpErrorResponse } from '@angular/common/http';
 import { Observable, throwError } from 'rxjs';
-import { catchError, map } from 'rxjs/operators';
+import { catchError, map, timeout, retry } from 'rxjs/operators';
+import { MatSnackBar } from '@angular/material/snack-bar';
 import { environment } from '../../environments/environment';
 
 export interface CodeExecutionRequest {
@@ -37,8 +38,13 @@ export interface ValidationResponse {
 })
 export class CodeExecutionService {
   private apiUrl = `${environment.apiUrl}/api/code`;
+  private readonly EXECUTION_TIMEOUT = 30000; // 30 seconds
+  private readonly MAX_RETRIES = 2;
 
-  constructor(private http: HttpClient) {}
+  constructor(
+    private http: HttpClient,
+    private snackBar: MatSnackBar
+  ) {}
 
   /**
    * Execute code in secure container
@@ -51,7 +57,9 @@ export class CodeExecutionService {
 
     return this.http.post<CodeExecutionResponse>(`${this.apiUrl}/execute`, request, { headers })
       .pipe(
-        catchError(this.handleError)
+        timeout(this.EXECUTION_TIMEOUT),
+        retry(this.MAX_RETRIES),
+        catchError((error) => this.handleCodeExecutionError(error, request))
       );
   }
 
@@ -66,7 +74,9 @@ export class CodeExecutionService {
 
     return this.http.post<CodeExecutionResponse>(`${this.apiUrl}/execute/lesson/${lessonId}`, request, { headers })
       .pipe(
-        catchError(this.handleError)
+        timeout(this.EXECUTION_TIMEOUT),
+        retry(this.MAX_RETRIES),
+        catchError((error) => this.handleCodeExecutionError(error, request))
       );
   }
 
@@ -211,7 +221,64 @@ export class CodeExecutionService {
   }
 
   /**
-   * Handle HTTP errors
+   * Handle HTTP errors for code execution
+   * Requirement 6.3: Error handling for code execution
+   */
+  private handleCodeExecutionError(error: any, request: CodeExecutionRequest): Observable<never> {
+    let errorMessage = 'Code execution failed';
+    let userFriendlyMessage = 'Unable to execute your code. Please try again.';
+    
+    if (error.name === 'TimeoutError') {
+      errorMessage = 'Code execution timed out';
+      userFriendlyMessage = 'Your code took too long to execute. Check for infinite loops or optimize your algorithm.';
+    } else if (error instanceof HttpErrorResponse) {
+      switch (error.status) {
+        case 400:
+          errorMessage = error.error?.message || 'Invalid code execution request';
+          userFriendlyMessage = 'There was an issue with your code. Please check your syntax and try again.';
+          break;
+        case 429:
+          errorMessage = 'Too many execution requests';
+          userFriendlyMessage = 'Too many code executions. Please wait a moment before trying again.';
+          break;
+        case 503:
+          errorMessage = 'Code execution service unavailable';
+          userFriendlyMessage = 'Code execution service is temporarily unavailable. Please try again later.';
+          break;
+        case 0:
+          errorMessage = 'Network connection failed';
+          userFriendlyMessage = 'Unable to connect to the code execution service. Please check your internet connection.';
+          break;
+        default:
+          errorMessage = error.error?.message || 'Server error during code execution';
+          userFriendlyMessage = 'A server error occurred while executing your code. Please try again.';
+      }
+    }
+    
+    // Show user-friendly error message
+    this.snackBar.open(userFriendlyMessage, 'Dismiss', {
+      duration: 6000,
+      panelClass: ['snackbar-error']
+    });
+    
+    console.error('Code Execution Error:', errorMessage, error);
+    
+    // Return a fallback response instead of throwing error
+    const fallbackResponse: CodeExecutionResponse = {
+      success: false,
+      status: 'SYSTEM_ERROR',
+      error: userFriendlyMessage,
+      executionTimeMs: 0,
+      memoryUsageMB: 0,
+      executedAt: new Date().toISOString(),
+      language: request.language
+    };
+    
+    return throwError(() => fallbackResponse);
+  }
+
+  /**
+   * Handle general HTTP errors
    */
   private handleError(error: any): Observable<never> {
     let errorMessage = 'An error occurred';

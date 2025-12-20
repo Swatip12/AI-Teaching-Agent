@@ -2,6 +2,9 @@ package com.aiteachingplatform.service;
 
 import com.aiteachingplatform.dto.CodeExecutionRequest;
 import com.aiteachingplatform.dto.CodeExecutionResponse;
+import com.aiteachingplatform.exception.CodeExecutionException;
+import com.aiteachingplatform.service.LoggingService;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -55,6 +58,9 @@ public class CodeExecutionService {
     
     private final ExecutorService executorService = Executors.newCachedThreadPool();
     
+    @Autowired
+    private LoggingService loggingService;
+    
     /**
      * Execute code in a secure Docker container
      */
@@ -97,6 +103,17 @@ public class CodeExecutionService {
             } finally {
                 // Clean up temporary files
                 cleanupExecutionDirectory(executionDir);
+                
+                // Log code execution
+                long executionTime = System.currentTimeMillis() - startTime;
+                loggingService.logCodeExecution(
+                    request.getLanguage().toString(),
+                    response != null && response.isSuccess(),
+                    executionTime,
+                    response != null ? response.getStatus().toString() : "UNKNOWN",
+                    null, // userId not available in this context
+                    response != null && !response.isSuccess() ? response.getError() : null
+                );
             }
             
         } catch (Exception e) {
@@ -169,7 +186,7 @@ public class CodeExecutionService {
                 fileName = "main.cpp";
                 break;
             default:
-                throw new IllegalArgumentException("Unsupported language: " + language);
+                throw new CodeExecutionException("Unsupported language: " + language, language);
         }
         
         Path codeFile = executionDir.resolve(fileName);
@@ -222,7 +239,7 @@ public class CodeExecutionService {
             case CPP:
                 return "gcc:latest";
             default:
-                throw new IllegalArgumentException("Unsupported language: " + language);
+                throw new CodeExecutionException("Unsupported language: " + language, language);
         }
     }
     
@@ -257,7 +274,7 @@ public class CodeExecutionService {
             case CPP:
                 return new String[]{"./main"};
             default:
-                throw new IllegalArgumentException("Unsupported language: " + language);
+                throw new CodeExecutionException("Unsupported language: " + language, language);
         }
     }
     

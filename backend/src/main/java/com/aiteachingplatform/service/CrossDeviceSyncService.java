@@ -4,7 +4,10 @@ import com.aiteachingplatform.model.Progress;
 import com.aiteachingplatform.model.User;
 import com.aiteachingplatform.model.UserPreferences;
 import com.aiteachingplatform.repository.ProgressRepository;
+import com.aiteachingplatform.exception.BusinessException;
+import com.aiteachingplatform.exception.ResourceNotFoundException;
 import com.aiteachingplatform.repository.UserRepository;
+import org.springframework.http.HttpStatus;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -56,7 +59,7 @@ public class CrossDeviceSyncService {
             
         } catch (Exception e) {
             logger.error("Error syncing progress for user {} on device {}: {}", userId, deviceType, e.getMessage());
-            throw new RuntimeException("Failed to sync user progress", e);
+            throw new BusinessException("SYNC_FAILED", "Failed to sync user progress", HttpStatus.INTERNAL_SERVER_ERROR, e);
         }
     }
     
@@ -71,7 +74,7 @@ public class CrossDeviceSyncService {
             
             Optional<User> userOpt = userRepository.findById(userId);
             if (userOpt.isEmpty()) {
-                throw new RuntimeException("User not found: " + userId);
+                throw new ResourceNotFoundException("User", userId.toString());
             }
             
             User user = userOpt.get();
@@ -99,7 +102,7 @@ public class CrossDeviceSyncService {
             
         } catch (Exception e) {
             logger.error("Error getting continuity state for user {}: {}", userId, e.getMessage());
-            throw new RuntimeException("Failed to get user continuity state", e);
+            throw new BusinessException("CONTINUITY_STATE_FAILED", "Failed to get user continuity state", HttpStatus.INTERNAL_SERVER_ERROR, e);
         }
     }
     
@@ -114,7 +117,7 @@ public class CrossDeviceSyncService {
             
             Optional<Progress> progressOpt = progressRepository.findById(progressId);
             if (progressOpt.isEmpty()) {
-                throw new RuntimeException("Progress not found: " + progressId);
+                throw new ResourceNotFoundException("Progress", progressId.toString());
             }
             
             Progress progress = progressOpt.get();
@@ -128,7 +131,7 @@ public class CrossDeviceSyncService {
             
         } catch (Exception e) {
             logger.error("Error updating progress {} with device info: {}", progressId, e.getMessage());
-            throw new RuntimeException("Failed to update progress with device info", e);
+            throw new BusinessException("PROGRESS_UPDATE_FAILED", "Failed to update progress with device info", HttpStatus.INTERNAL_SERVER_ERROR, e);
         }
     }
     
@@ -143,7 +146,7 @@ public class CrossDeviceSyncService {
             
             Optional<User> userOpt = userRepository.findById(userId);
             if (userOpt.isEmpty()) {
-                throw new RuntimeException("User not found: " + userId);
+                throw new ResourceNotFoundException("User", userId.toString());
             }
             
             User user = userOpt.get();
@@ -173,7 +176,7 @@ public class CrossDeviceSyncService {
             
         } catch (Exception e) {
             logger.error("Error preparing offline data package for user {}: {}", userId, e.getMessage());
-            throw new RuntimeException("Failed to prepare offline data package", e);
+            throw new BusinessException("OFFLINE_PACKAGE_FAILED", "Failed to prepare offline data package", HttpStatus.INTERNAL_SERVER_ERROR, e);
         }
     }
     

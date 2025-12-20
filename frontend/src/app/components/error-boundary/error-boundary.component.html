@@ -1,0 +1,43 @@
+<div class="error-boundary" *ngIf="error || errorMessage">
+  <div class="error-container">
+    <div class="error-icon">
+      <mat-icon>error_outline</mat-icon>
+    </div>
+    
+    <h2 class="error-title">{{ getErrorTitle() }}</h2>
+    
+    <p class="error-message">{{ getErrorMessage() }}</p>
+    
+    <div class="error-actions">
+      <button 
+        mat-raised-button 
+        color="primary" 
+        *ngIf="showRetry"
+        (click)="onRetry()">
+        <mat-icon>refresh</mat-icon>
+        Try Again
+      </button>
+      
+      <button 
+        mat-stroked-button 
+        (click)="onGoHome()">
+        <mat-icon>home</mat-icon>
+        Go to Dashboard
+      </button>
+    </div>
+    
+    <div class="error-details" *ngIf="error">
+      <button 
+        mat-button 
+        class="details-toggle"
+        (click)="toggleDetails()">
+        <mat-icon>{{ showDetails ? 'expand_less' : 'expand_more' }}</mat-icon>
+        {{ showDetails ? 'Hide' : 'Show' }} Technical Details
+      </button>
+      
+      <div class="details-content" *ngIf="showDetails">
+        <pre>{{ error | json }}</pre>
+      </div>
+    </div>
+  </div>
+</div>
